@@ -1,0 +1,11 @@
+slack-default-url: "https://hooks.slack.com/services/xxx"
+slack-default-channel: "#general"
+slack-default-botname: "bot_chan"
+slack-default-boticon: ":ghost:"
+git-repositories:
+  - git-reponame: "repo-name"
+    git-url: "http://xxxx"
+    slack-url: "https://hooks.slack.com/services/xxxx"
+    slack-channel: "#bot_test"
+    slack-botname: "bot_chan"
+    slack-boticon: ":ghost:"
