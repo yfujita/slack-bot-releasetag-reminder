@@ -18,12 +18,12 @@ const (
 )
 
 type GitRepository struct {
-	GitRepositoryName	string
-	GitRepositoryUrl	string
-	SlackUrl			string
-	SlackChannel		string
-	SlackBotName		string
-	SlackBotIcon		string
+	GitRepositoryName string
+	GitRepositoryUrl  string
+	SlackUrl          string
+	SlackChannel      string
+	SlackBotName      string
+	SlackBotIcon      string
 }
 
 func main() {
