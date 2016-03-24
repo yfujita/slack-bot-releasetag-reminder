@@ -56,6 +56,7 @@ func main() {
 			fmt.Println(gitRepository.GitRepositoryName + " のリリースタグは大丈夫。")
 		}
 		os.Chdir("..")
+		os.RemoveAll(gitRepository.GitRepositoryName)
 	}
 
 	os.Chdir("..")
