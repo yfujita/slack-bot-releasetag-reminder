@@ -36,67 +36,90 @@ func main() {
 	}
 	gitRepositories := loadConfig(confPath)
 
-	err := os.RemoveAll(TEMP_DIR)
+	os.Mkdir(TEMP_DIR, 0777)
+	os.Chdir(TEMP_DIR)
+	tempPath, err := os.Getwd()
+	fmt.Println(tempPath)
 	if err != nil {
 		panic(err.Error())
 	}
-	os.Mkdir(TEMP_DIR, 0777)
-	os.Chdir(TEMP_DIR)
 
 	for _, gitRepository := range gitRepositories {
-		executeCmd("git", "clone", gitRepository.GitRepositoryUrl)
-		os.Chdir(gitRepository.GitRepositoryName)
+		urlDir := strings.Replace(gitRepository.GitRepositoryUrl, "/", "_", -1)
+		if !isExists(urlDir) {
+			fmt.Println("mkdir " + urlDir)
+			err = os.Mkdir(urlDir, 0777)
+			if err != nil {
+				panic(err.Error())
+			}
+		}
+		os.Chdir(urlDir)
+
+		if isExists(gitRepository.GitRepositoryName) {
+			fmt.Println("exists")
+			os.Chdir(gitRepository.GitRepositoryName)
+
+			_, prevTagTimestamp := getLastTagTimestamp()
+			executeCmd("git", "pull")
+			newTag, nextTagTimestamp := getLastTagTimestamp()
+
+			if prevTagTimestamp < nextTagTimestamp {
+				slackMessage(gitRepository.SlackUrl, gitRepository.SlackChannel, gitRepository.SlackBotName, gitRepository.SlackBotIcon, gitRepository.GitRepositoryName + " にタグ " + newTag + " が作成されました (⑅ ॣ•͈૦•͈ ॣ)꒳ᵒ꒳ᵎᵎᵎ", "")
+			}
+		} else {
+			executeCmd("git", "clone", gitRepository.GitRepositoryUrl)
+			os.Chdir(gitRepository.GitRepositoryName)
+		}
+
 		commitTimestamp := getLastCommitTimestamp()
-		tagTimestamp := getLastTagTimestamp()
-		fmt.Println(gitRepository.GitRepositoryName + "commit: " + strconv.Itoa(int(commitTimestamp)) + " tag: " + strconv.Itoa(int(tagTimestamp)))
+		_, tagTimestamp := getLastTagTimestamp()
+		fmt.Println(gitRepository.GitRepositoryName + " commit: " + strconv.Itoa(int(commitTimestamp)) + " tag: " + strconv.Itoa(int(tagTimestamp)))
+
 		if commitTimestamp > tagTimestamp {
-			fmt.Println(gitRepository.GitRepositoryName + " にリリースタグをつけてください o(>_<)o")
 			slackMessage(gitRepository.SlackUrl, gitRepository.SlackChannel, gitRepository.SlackBotName, gitRepository.SlackBotIcon, gitRepository.GitRepositoryName + " にリリースタグをつけてください o(>_<)o", "")
 		} else {
 			fmt.Println(gitRepository.GitRepositoryName + " のリリースタグは大丈夫。")
 		}
-		os.Chdir("..")
-		os.RemoveAll(gitRepository.GitRepositoryName)
-	}
 
-	os.Chdir("..")
-	os.RemoveAll(TEMP_DIR)
+		os.Chdir(tempPath)
+	}
 }
 
 func slackMessage(url, channel, botName, botIcon, title, msg string) {
+	fmt.Println("Send message. channel:" + channel + " name:" + botName + " msg:" + title + " " + msg)
 	bot := slackutil.NewBot(url, channel, botName, botIcon)
 	bot.Message(title, msg)
 }
 
 func getLastCommitTimestamp() int64 {
 	out := executeCmd("git", "log")
-	tags := strings.Split(out, "\n")
-	if len(tags) == 0 {
+	commits := strings.Split(out, "\n")
+	if len(commits) == 0 {
 		return 0
 	}
 
-	lastCommit := strings.Replace(tags[0], "commit ", "", -1)
+	lastCommit := strings.Replace(commits[0], "commit ", "", -1)
 	return getLastTimestamp(lastCommit)
 }
 
-func getLastTagTimestamp() int64 {
+func getLastTagTimestamp() (string, int64) {
 	out := executeCmd("git", "tag")
 	tags := strings.Split(out, "\n")
 	if len(tags) == 0 {
-		return 0
+		return "", 0
 	}
 
 	var lastTag string
 	for _, tag := range tags {
-		if len(tag) > 5 {
+		if len(tag) > 0 {
 			lastTag = tag
 		}
 	}
 	if lastTag == "" {
-		return 0
+		return "", 0
 	}
 
-	return getLastTimestamp(lastTag)
+	return lastTag, getLastTimestamp(lastTag)
 }
 
 func getLastTimestamp(updateName string) int64 {
@@ -132,16 +155,15 @@ func executeCmd(name string, args ...string) string {
 
 func loadConfig(path string) []GitRepository {
 	fmt.Println("Loading... " + path)
-	yaml, err := ioutil.ReadFile(path)
+	yml, err := ioutil.ReadFile(path)
 
 	m := make(map[interface{}]interface{})
-	err = goyaml.Unmarshal(yaml, &m)
+	err = goyaml.Unmarshal(yml, &m)
 	if err != nil {
 		panic(err.Error())
 	}
 	fmt.Print("Configures: ")
 	fmt.Println(m)
-
 
 	slackDefaultUrl := m["slack-default-url"].(string)
 	slackDefaultChannel := m["slack-default-channel"].(string)
@@ -177,4 +199,9 @@ func loadConfig(path string) []GitRepository {
 	}
 
 	return gitRepositories
+}
+
+func isExists(filename string) bool {
+	_, err := os.Stat(filename)
+	return err == nil
 }
