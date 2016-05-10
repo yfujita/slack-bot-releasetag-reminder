@@ -111,8 +111,12 @@ func getLastTagTimestamp() (string, int64) {
 
 	var lastTag string
 	for _, ref := range refs {
-		tag := ref[strings.Index(ref, "refs/tags/") + len("refs/tags/"):len(ref)]
-		fmt.Println("tag:" + tag)
+		pos := strings.Index(ref, "refs/tags/")
+		if pos < 0 {
+			continue
+		}
+
+		tag := ref[pos + len("refs/tags/"):len(ref)]
 		if len(tag) > 0 {
 			lastTag = tag
 		}
