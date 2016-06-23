@@ -64,7 +64,10 @@ func main() {
 			newTag, nextTagTimestamp := getLastTagTimestamp()
 
 			if prevTagTimestamp < nextTagTimestamp {
-				slackMessage(gitRepository.SlackUrl, gitRepository.SlackChannel, gitRepository.SlackBotName, gitRepository.SlackBotIcon, gitRepository.GitRepositoryName + " にタグ " + newTag + " が作成されました (⑅ ॣ•͈૦•͈ ॣ)꒳ᵒ꒳ᵎᵎᵎ", "")
+				err := slackMessage(gitRepository.SlackUrl, gitRepository.SlackChannel, gitRepository.SlackBotName, gitRepository.SlackBotIcon, "", gitRepository.GitRepositoryName + " にタグ " + newTag + " が作成されました (⑅ ॣ•͈૦•͈ ॣ)꒳ᵒ꒳ᵎᵎᵎ")
+				if err != nil {
+					panic(err)
+				}
 			}
 		} else {
 			executeCmd("git", "clone", gitRepository.GitRepositoryUrl)
@@ -76,7 +79,10 @@ func main() {
 		fmt.Println(gitRepository.GitRepositoryName + " commit: " + strconv.Itoa(int(commitTimestamp)) + " tag: " + strconv.Itoa(int(tagTimestamp)))
 
 		if commitTimestamp > tagTimestamp {
-			slackMessage(gitRepository.SlackUrl, gitRepository.SlackChannel, gitRepository.SlackBotName, gitRepository.SlackBotIcon, gitRepository.GitRepositoryName + " にリリースタグをつけてください o(>_<)o", "")
+			err := slackMessage(gitRepository.SlackUrl, gitRepository.SlackChannel, gitRepository.SlackBotName, gitRepository.SlackBotIcon, "", gitRepository.GitRepositoryName + " にリリースタグをつけてください o(>_<)o")
+			if err != nil {
+				panic(err)
+			}
 		} else {
 			fmt.Println(gitRepository.GitRepositoryName + " のリリースタグは大丈夫。")
 		}
@@ -85,10 +91,10 @@ func main() {
 	}
 }
 
-func slackMessage(url, channel, botName, botIcon, title, msg string) {
+func slackMessage(url, channel, botName, botIcon, title, msg string) error {
 	fmt.Println("Send message. channel:" + channel + " name:" + botName + " msg:" + title + " " + msg)
 	bot := slackutil.NewBot(url, channel, botName, botIcon)
-	bot.Message(title, msg)
+	return bot.Message(title, msg)
 }
 
 func getLastCommitTimestamp() int64 {
