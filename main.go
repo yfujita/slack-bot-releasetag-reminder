@@ -109,7 +109,7 @@ func getLastCommitTimestamp() int64 {
 }
 
 func getLastTagTimestamp() (string, int64) {
-	out := executeCmd("git", "for-each-ref", "--sort=taggerdate", "refs/tags")
+	out := executeCmd("git", "for-each-ref", "refs/tags")
 	refs := strings.Split(out, "\n")
 	if len(refs) == 0 {
 		return "", 0
